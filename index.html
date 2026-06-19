@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>The Lake</title>
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    body {
+      background: #0a0705;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Special Elite', serif;
+      overflow: hidden
+    }
+
+    #game-outer {
+      width: 100%;
+      max-width: 480px;
+      aspect-ratio: 480 / 344;
+      position: relative;
+    }
+
+    #game {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      cursor: default;
+      overflow: hidden
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: calc(100% - 44px);
+      display: block;
+      touch-action: none;
+    }
+
+    #overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10
+    }
+
+    #hud {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 44px;
+      background: rgba(5, 3, 2, 0.92);
+      border-top: 1px solid #2a1a08;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 6px;
+      z-index: 20;
+      pointer-events: none
+    }
+
+    .inv-slot {
+      width: 32px;
+      height: 32px;
+      border: 1px solid #3a2a10;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+      pointer-events: all;
+      position: relative;
+      transition: border-color 0.2s
+    }
+
+    .inv-slot.has-item {
+      border-color: #6a4a20
+    }
+
+    .inv-slot.selected {
+      border-color: #c8a050;
+      box-shadow: 0 0 6px rgba(200, 160, 80, 0.4)
+    }
+
+    .inv-slot:empty::after {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 20px;
+      border: 1px dashed #2a1a08;
+      border-radius: 1px
+    }
+
+    #msg-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: rgba(5, 3, 2, 0.85);
+      color: #c8b89a;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      padding: 5px 12px;
+      z-index: 30;
+      pointer-events: none;
+      min-height: 24px;
+      text-align: center;
+      border-bottom: 1px solid #1a1008;
+      opacity: 0;
+      transition: opacity 0.3s
+    }
+
+    #msg-bar.show {
+      opacity: 1
+    }
+
+    #title-screen {
+      position: absolute;
+      inset: 0;
+      background: #0a0705;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      cursor: pointer
+    }
+
+    #title-screen h1 {
+      color: #c8a050;
+      font-size: 28px;
+      letter-spacing: 6px;
+      margin-bottom: 4px
+    }
+
+    #title-screen .sub {
+      color: #4a3a20;
+      font-size: 11px;
+      letter-spacing: 3px;
+      margin-bottom: 40px
+    }
+
+    #title-screen .start {
+      color: #6a5a30;
+      font-size: 12px;
+      letter-spacing: 2px;
+      animation: blink 2s infinite
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 0.4
+      }
+
+      50% {
+        opacity: 1
+      }
+    }
+
+    #final-screen {
+      position: absolute;
+      inset: 0;
+      background: #0d0905;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 24px;
+      text-align: center
+    }
+
+    #final-screen h2 {
+      color: #c8a050;
+      font-size: 16px;
+      letter-spacing: 3px;
+      margin-bottom: 20px
+    }
+
+    #letter {
+      color: #c8b89a;
+      font-size: 13px;
+      line-height: 2;
+      letter-spacing: 0.5px;
+      max-width: 380px
+    }
+
+    #replay {
+      margin-top: 20px;
+      background: none;
+      border: 1px solid #3a2a10;
+      color: #6a5a30;
+      font-family: 'Special Elite', serif;
+      font-size: 11px;
+      letter-spacing: 2px;
+      padding: 6px 16px;
+      cursor: pointer;
+      display: none
+    }
+
+    #replay:hover {
+      border-color: #c8a050;
+      color: #c8a050
+    }
+
+    #particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 5
+    }
+
+    .spark {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: sparkfly 0.6s ease-out forwards
+    }
+
+    @keyframes sparkfly {
+      0% {
+        opacity: 1;
+        transform: scale(1) translate(0, 0)
+      }
+
+      100% {
+        opacity: 0;
+        transform: scale(0) translate(var(--tx), var(--ty))
+      }
+    }
+
+    #hud-label {
+      position: absolute;
+      bottom: 46px;
+      left: 10px;
+      color: #3a2a10;
+      font-size: 9px;
+      letter-spacing: 1px;
+      z-index: 20;
+      pointer-events: none
+    }
+
+    .flicker {
+      animation: flicker 3s infinite
+    }
+
+    @keyframes flicker {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      92% {
+        opacity: 1
+      }
+
+      93% {
+        opacity: 0.7
+      }
+
+      94% {
+        opacity: 1
+      }
+
+      97% {
+        opacity: 0.85
+      }
+
+      98% {
+        opacity: 1
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="game-outer">
+  <div id="game">
+    <canvas id="c"></canvas>
+    <div id="particles"></div>
+    <div id="msg-bar"></div>
+
+    <div id="hud-label">inventory</div>
+    <div id="hud">
+      <div class="inv-slot" id="slot0" onclick="selectItem(0)"></div>
+      <div class="inv-slot" id="slot1" onclick="selectItem(1)"></div>
+      <div class="inv-slot" id="slot2" onclick="selectItem(2)"></div>
+      <div class="inv-slot" id="slot3" onclick="selectItem(3)"></div>
+      <div class="inv-slot" id="slot4" onclick="selectItem(4)"></div>
+      <div class="inv-slot" id="slot5" onclick="selectItem(5)"></div>
+    </div>
+    <div id="title-screen" onclick="startGame()">
+      <h1>THE LAKE</h1>
+      <div class="sub">a mystery in five rooms</div>
+      <div class="start">— click to begin —</div>
+    </div>
+    <div id="final-screen">
+      <h2>✦ A LETTER ✦</h2>
+      <div id="letter"></div>
+      <button id="replay" onclick="location.reload()">← play again</button>
+    </div>
+  </div>
+  </div>
+
+  <script>
+    const C = document.getElementById('c');
+    const ctx = C.getContext('2d');
+    C.width = 480; C.height = 300;
+
+    // ─── STATE ───────────────────────────────────────────────
+    let scene = 0;
+    let inventory = []; // array of item objects
+    let selectedItem = null;
+    let msgTimer = null;
+
+    const state = {
+      r1: { fireLit: false, bookChecked: false, drawerUnlocked: false, drawerOpen: false, paintingLookedAt: false, matchesFound: false },
+      r2: { candleLit: false, shadow1: false, shadow2: false, shadow3: false, correctDoor: false, doorsTried: [] },
+      r3: { crackerGiven: false, locketTaken: false, locketOpened: false, boatUsed: false, crowInteracted: false },
+      r4: { musicBoxTurns: 0, targetTurns: 7, glassOpened: false, keyTaken: false },
+      r5: { keyUsed: false }
+    };
+
+    // ─── ITEMS ───────────────────────────────────────────────
+    const ITEMS = {
+      matches: { id: 'matches', icon: '🔥', name: 'matches', desc: 'A small box of matches.' },
+      candle: { id: 'candle', icon: '🕯\uFE0F', name: 'candle', desc: 'An unlit candle.' },
+      candlelit: { id: 'candlelit', icon: '✨', name: 'lit candle', desc: 'A candle casting warm light.' },
+      cracker: { id: 'cracker', icon: '🍪', name: 'cracker', desc: 'A dry cracker. Someone left it here.' },
+      locket: { id: 'locket', icon: '💛', name: 'locket', desc: 'A brass locket. Something inside.' },
+      key: { id: 'key', icon: '🗝\uFE0F', name: 'iron key', desc: 'A heavy iron key.' },
+    };
+
+    function addItem(id) {
+      if (inventory.find(i => i.id === id)) return;
+      inventory.push(ITEMS[id]);
+      renderInventory();
+    }
+    function removeItem(id) {
+      inventory = inventory.filter(i => i.id !== id);
+      if (selectedItem && selectedItem.id === id) selectedItem = null;
+      renderInventory();
+    }
+    function hasItem(id) { return !!inventory.find(i => i.id === id); }
+
+    function renderInventory() {
+      for (let i = 0; i < 6; i++) {
+        const slot = document.getElementById('slot' + i);
+        const item = inventory[i];
+        slot.textContent = item ? item.icon : '';
+        slot.classList.toggle('has-item', !!item);
+        slot.classList.toggle('selected', selectedItem && item && selectedItem.id === item.id);
+      }
+    }
+
+    function selectItem(i) {
+      const item = inventory[i];
+      if (!item) { selectedItem = null; renderInventory(); return; }
+      if (selectedItem && selectedItem.id === item.id) { selectedItem = null; msg(''); }
+      else { selectedItem = item; msg(item.desc); }
+      renderInventory();
+    }
+
+    // ─── MESSAGE ─────────────────────────────────────────────
+    function msg(text, dur = 2800) {
+      const bar = document.getElementById('msg-bar');
+      bar.textContent = text;
+      bar.classList.toggle('show', !!text);
+      if (msgTimer) clearTimeout(msgTimer);
+      if (text && dur > 0) msgTimer = setTimeout(() => { bar.classList.remove('show'); }, dur);
+    }
+
+    // ─── VIGNETTE ────────────────────────────────────────────
+    function drawVignette(strength = 0.65) {
+      const vg = ctx.createRadialGradient(240, 150, 60, 240, 150, 230);
+      vg.addColorStop(0, 'rgba(0,0,0,0)');
+      vg.addColorStop(1, `rgba(0,0,0,${strength})`);
+      ctx.fillStyle = vg; ctx.fillRect(0, 0, 480, 300);
+    }
+
+    // ─── SPARKS ──────────────────────────────────────────────
+    function sparks(x, y, cols = ['#c8a050', '#f5e0a0', '#8a6030']) {
+      const p = document.getElementById('particles');
+      for (let i = 0; i < 10; i++) {
+        const el = document.createElement('div');
+        el.className = 'spark';
+        const sz = 3 + Math.random() * 5;
+        const ang = Math.random() * Math.PI * 2;
+        const dist = 20 + Math.random() * 50;
+        el.style.cssText = `width:${sz}px;height:${sz}px;background:${cols[Math.floor(Math.random() * cols.length)]};left:${x - sz / 2}px;top:${y - sz / 2}px;--tx:${Math.cos(ang) * dist}px;--ty:${Math.sin(ang) * dist}px;`;
+        p.appendChild(el);
+        setTimeout(() => el.remove(), 700);
+      }
+    }
+
+    // ─── HIT TESTING ─────────────────────────────────────────
+    function hit(x, y, rx, ry, rw, rh) { return x >= rx && x <= rx + rw && y >= ry && y <= ry + rh; }
+    function hitC(x, y, cx, cy, r) { return Math.hypot(x - cx, y - cy) < r; }
+
+    // ─── DRAW UTILS ──────────────────────────────────────────
+    function wobbleLine(x1, y1, x2, y2, w = 1.2) {
+      ctx.beginPath();
+      const mx = (x1 + x2) / 2 + (Math.random() - 0.5) * 3;
+      const my = (y1 + y2) / 2 + (Math.random() - 0.5) * 3;
+      ctx.moveTo(x1, y1);
+      ctx.quadraticCurveTo(mx, my, x2, y2);
+      ctx.lineWidth = w; ctx.stroke();
+    }
+
+    function drawFlame(x, y, h = 12, col = '#ff9900') {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.bezierCurveTo(x - 4, y - h * 0.4, x - 5, y - h * 0.7, x, y - h);
+      ctx.bezierCurveTo(x + 5, y - h * 0.7, x + 4, y - h * 0.4, x, y);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,220,100,0.4)';
+      ctx.beginPath(); ctx.ellipse(x, y - h * 0.3, 8, 10, 0, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // ROOM 1 — THE CABIN
+    // ══════════════════════════════════════════════════════════
+    const R1_ZONES = {
+      fireplace: { x: 170, y: 80, w: 100, h: 120 },
+      painting: { x: 310, y: 60, w: 80, h: 80 },
+      drawer: { x: 60, y: 160, w: 90, h: 70 },
+      book: { x: 65, y: 140, w: 40, h: 20 },
+      window: { x: 20, y: 60, w: 60, h: 80 },
+    };
+
+    let r1DrawerAnim = 0;
+    let r1FireAnim = 0;
+    let r1SymbolInput = '';
+    const R1_SYMBOLS = ['△', '○', '✕'];
+    let r1SymbolEntered = [];
+    let r1ShowLock = false;
+
+    function drawRoom1() {
+      const c = ctx;
+      c.clearRect(0, 0, 480, 300);
+      c.fillStyle = '#0e0905'; c.fillRect(0, 0, 480, 300);
+      c.fillStyle = '#1a1008'; c.fillRect(20, 30, 440, 220);
+
+      // wallpaper - dark diamonds
+      c.strokeStyle = '#221508'; c.lineWidth = 0.5;
+      for (let x = 20; x < 460; x += 24) for (let y = 30; y < 250; y += 18) {
+        c.beginPath();
+        c.moveTo(x + 12, y); c.lineTo(x + 24, y + 9); c.lineTo(x + 12, y + 18); c.lineTo(x, y + 9); c.closePath();
+        c.stroke();
+      }
+
+      // floor
+      c.fillStyle = '#100a04'; c.fillRect(0, 248, 480, 52);
+      c.strokeStyle = '#1e1208'; c.lineWidth = 1;
+      for (let x = 0; x < 480; x += 60) { c.beginPath(); c.moveTo(x, 248); c.lineTo(x, 300); c.stroke(); }
+      c.beginPath(); c.moveTo(0, 258); c.lineTo(480, 258); c.stroke();
+      c.beginPath(); c.moveTo(0, 272); c.lineTo(480, 272); c.stroke();
+
+      // baseboard
+      c.fillStyle = '#1e1208'; c.fillRect(0, 244, 480, 6);
+      c.fillStyle = '#2a1a0a'; c.fillRect(0, 242, 480, 3);
+
+      // WINDOW left
+      c.fillStyle = '#0d1a0d'; c.fillRect(22, 62, 56, 76);
+      c.strokeStyle = '#3a2810'; c.lineWidth = 1.5;
+      c.strokeRect(20, 60, 60, 80);
+      c.beginPath(); c.moveTo(50, 60); c.lineTo(50, 140); c.stroke();
+      c.beginPath(); c.moveTo(20, 100); c.lineTo(80, 100); c.stroke();
+      // moonlight through window
+      c.fillStyle = 'rgba(100,120,150,0.08)';
+      c.fillRect(22, 62, 28, 38);
+      // stars outside
+      c.fillStyle = 'rgba(200,220,255,0.6)'; c.font = '5px serif';
+      c.fillText('·', 30, 72); c.fillText('·', 55, 78); c.fillText('·', 38, 88);
+
+      // FIREPLACE center
+      c.fillStyle = '#0d0804'; c.fillRect(172, 82, 96, 128);
+      c.fillStyle = '#231508';
+      c.beginPath(); c.moveTo(168, 82); c.lineTo(172, 82); c.lineTo(172, 210); c.lineTo(168, 210); c.closePath(); c.fill();
+      c.beginPath(); c.moveTo(268, 82); c.lineTo(272, 82); c.lineTo(272, 210); c.lineTo(268, 210); c.closePath(); c.fill();
+      // mantel
+      c.fillStyle = '#2a1a0a';
+      c.beginPath(); c.roundRect(160, 78, 120, 12, 2); c.fill();
+      c.strokeStyle = '#3a2810'; c.lineWidth = 1; c.strokeRect(160, 78, 120, 12);
+      // fire arch
+      c.fillStyle = '#150d06';
+      c.beginPath(); c.moveTo(180, 210); c.lineTo(180, 130); c.quadraticCurveTo(220, 100, 260, 130); c.lineTo(260, 210); c.closePath(); c.fill();
+      // ash
+      c.fillStyle = '#1e1510'; c.fillRect(185, 200, 70, 10);
+
+      if (state.r1.fireLit) {
+        r1FireAnim = (r1FireAnim + 1) % 60;
+        const flicker = 0.9 + Math.sin(r1FireAnim * 0.3) * 0.1;
+        // fire glow
+        const fg = c.createRadialGradient(220, 180, 10, 220, 180, 80);
+        fg.addColorStop(0, `rgba(255,120,20,${0.25 * flicker})`);
+        fg.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = fg; c.fillRect(140, 100, 160, 160);
+        // flames
+        drawFlame(210, 200, 35, '#ff6600');
+        drawFlame(225, 200, 28, '#ff8800');
+        drawFlame(200, 200, 22, '#ff9900');
+        drawFlame(235, 200, 18, '#ffaa00');
+        // embers
+        c.fillStyle = '#ff6600';
+        for (let i = 0; i < 5; i++) {
+          c.beginPath();
+          c.arc(195 + i * 8 + Math.sin(r1FireAnim * 0.1 + i) * 2, 198, 1.5, 0, Math.PI * 2);
+          c.fill();
+        }
+        // room lighting
+        c.fillStyle = 'rgba(255,100,20,0.04)';
+        c.fillRect(0, 0, 480, 300);
+      }
+
+      // CHEST OF DRAWERS left
+      c.fillStyle = '#1e1208'; c.strokeStyle = '#2e1e0e'; c.lineWidth = 1.5;
+      c.beginPath(); c.roundRect(55, 148, 100, 100, 3); c.fill(); c.stroke();
+      // drawer faces
+      c.fillStyle = '#1a1006';
+      c.beginPath(); c.roundRect(60, 153, 90, 28, 2); c.fill();
+      c.beginPath(); c.roundRect(60, 185, 90, 28, 2); c.fill();
+      c.beginPath(); c.roundRect(60, 217, 90, 24, 2); c.fill();
+      // drawer dividers
+      c.strokeStyle = '#2e1e0e'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(55, 183); c.lineTo(155, 183); c.stroke();
+      c.beginPath(); c.moveTo(55, 215); c.lineTo(155, 215); c.stroke();
+      // knobs
+      c.fillStyle = '#8a6030';
+      c.beginPath(); c.arc(105, 167, 4, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(105, 199, 4, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(105, 229, 4, 0, Math.PI * 2); c.fill();
+
+      // BOOK on top of chest
+      c.fillStyle = '#8b2020';
+      c.beginPath(); c.roundRect(62, 138, 50, 14, 2); c.fill();
+      c.strokeStyle = '#5a1010'; c.lineWidth = 0.8; c.strokeRect(62, 138, 50, 14);
+      c.fillStyle = '#c8b89a'; c.font = '8px Special Elite';
+      if (state.r1.bookChecked) {
+        c.fillText('(empty)', 67, 148);
+      } else {
+        c.fillText('journal', 67, 148);
+      }
+
+      // PAINTING right wall
+      c.fillStyle = '#8b6030';
+      c.beginPath(); c.roundRect(306, 56, 88, 92, 2); c.fill();
+      c.strokeStyle = '#6a4a20'; c.lineWidth = 2; c.strokeRect(308, 58, 84, 88);
+      // painting content - dark lake scene
+      c.fillStyle = '#0d1a20'; c.fillRect(310, 60, 80, 84);
+      c.fillStyle = '#1a2a30'; c.fillRect(310, 104, 80, 40);
+      c.fillStyle = 'rgba(100,140,180,0.15)';
+      for (let i = 0; i < 5; i++) {
+        c.beginPath();
+        c.moveTo(310 + i * 20, 115);
+        c.quadraticCurveTo(320 + i * 20, 108, 330 + i * 20, 115);
+        c.stroke();
+      }
+      // moon in painting
+      c.fillStyle = 'rgba(200,200,180,0.6)';
+      c.beginPath(); c.arc(360, 80, 8, 0, Math.PI * 2); c.fill();
+      // clock in painting - THIS is the clue
+      c.strokeStyle = '#c8a050'; c.lineWidth = 1;
+      c.beginPath(); c.arc(350, 88, 14, 0, Math.PI * 2); c.stroke();
+      c.fillStyle = '#c8a050'; c.font = '7px Special Elite';
+      c.textAlign = 'center';
+      c.fillText('12', 350, 77); c.fillText('3', 362, 91); c.fillText('6', 350, 103); c.fillText('9', 338, 91);
+      // clock hands point to 7:35 — big hand at 7 = bottom-left
+      c.strokeStyle = '#c8a050'; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(350, 88); c.lineTo(350, 78); c.stroke(); // hour 12
+      c.beginPath(); c.moveTo(350, 88); c.lineTo(342, 95); c.stroke(); // min 7 area
+      c.textAlign = 'left';
+      if (state.r1.paintingLookedAt) {
+        // symbols revealed on painting
+        c.fillStyle = 'rgba(200,160,80,0.9)';
+        c.font = '10px Special Elite'; c.textAlign = 'center';
+        c.fillText('△  ○  ✕', 350, 125);
+        c.textAlign = 'left';
+      }
+
+      // WAX DRIPS (revealed when fire is lit) on drawer
+      if (state.r1.fireLit && !state.r1.drawerUnlocked) {
+        c.fillStyle = 'rgba(220,180,80,0.9)';
+        c.font = '12px Special Elite'; c.textAlign = 'center';
+        c.fillText('△  ○  ✕', 105, 143);
+        c.textAlign = 'left';
+        c.fillStyle = '#c8b89a'; c.font = '8px Special Elite';
+        c.fillText('wax reveals symbols', 62, 136);
+      }
+
+      // DRAWER LOCK
+      if (!state.r1.drawerUnlocked) {
+        c.fillStyle = '#8a6030';
+        c.beginPath(); c.arc(105, 162, 6, 0, Math.PI * 2); c.fill();
+        c.fillStyle = '#1a1008';
+        c.beginPath(); c.arc(105, 162, 3, 0, Math.PI * 2); c.fill();
+        // show symbol input if active
+        if (r1ShowLock) {
+          c.fillStyle = 'rgba(10,7,5,0.96)';
+          c.beginPath(); c.roundRect(35, 75, 140, 70, 4); c.fill();
+          c.strokeStyle = '#3a2810'; c.lineWidth = 1.5; c.strokeRect(35, 75, 140, 70);
+
+          c.fillStyle = '#c8b89a'; c.font = '10px Special Elite';
+          c.fillText('enter symbols:', 42, 90);
+
+          c.font = '14px Special Elite';
+          c.fillText(r1SymbolEntered.join(' ') || '_ _ _', 45, 108);
+
+          // Draw clickable buttons
+          const btnY = 115;
+          const symbols = ['△', '○', '✕', '⌫'];
+          symbols.forEach((sym, idx) => {
+            const bx = 42 + idx * 31;
+            c.fillStyle = '#1e1208';
+            c.strokeStyle = '#3a2810';
+            c.lineWidth = 1;
+            c.beginPath(); c.roundRect(bx, btnY, 26, 20, 2); c.fill(); c.stroke();
+
+            c.fillStyle = '#c8a050';
+            c.font = sym === '⌫' ? '12px sans-serif' : '14px Special Elite';
+            c.textAlign = 'center';
+            c.fillText(sym, bx + 13, btnY + 15);
+            c.textAlign = 'left';
+          });
+        }
+      }
+
+      if (state.r1.drawerOpen) {
+        // open drawer contents
+        c.fillStyle = '#0d0804'; c.fillRect(61, 154, 88, 26);
+        c.fillStyle = '#c8a050'; c.font = '9px Special Elite';
+        c.fillText('key  +  torn note', 65, 170);
+      }
+
+      // candle on mantel
+      if (!hasItem('candle') && !hasItem('candlelit')) {
+        c.fillStyle = '#d4c090'; c.fillRect(278, 65, 6, 16);
+        c.fillStyle = '#c8a060'; c.fillRect(276, 81, 10, 4);
+      }
+
+      // small text hints on objects
+      c.fillStyle = 'rgba(100,80,40,0.4)'; c.font = '8px Special Elite';
+      if (!state.r1.fireLit) c.fillText('fireplace', 183, 225);
+
+      drawVignette(0.7);
+    }
+
+    function clickRoom1(x, y) {
+      if (r1ShowLock) {
+        const btnY = 115;
+        const symbols = ['△', '○', '✕', '⌫'];
+        for (let idx = 0; idx < symbols.length; idx++) {
+          const bx = 42 + idx * 31;
+          if (hit(x, y, bx, btnY, 26, 20)) {
+            const sym = symbols[idx];
+            if (sym === '⌫') {
+              r1SymbolEntered.pop();
+            } else if (r1SymbolEntered.length < 3) {
+              r1SymbolEntered.push(sym);
+            }
+            if (r1SymbolEntered.length === 3) {
+              if (r1SymbolEntered.join('') === '△○✕') {
+                state.r1.drawerUnlocked = true;
+                r1ShowLock = false;
+                r1SymbolEntered = [];
+                msg('Click! The drawer unlocks.', 2500);
+                sparks(105, 165, ['#c8a050', '#f5e0a0']);
+              } else {
+                msg('Wrong. The drawer holds firm.');
+                r1SymbolEntered = [];
+              }
+            }
+            draw();
+            return;
+          }
+        }
+        if (x < 35 || x > 175 || y < 75 || y > 145) {
+          r1ShowLock = false;
+          r1SymbolEntered = [];
+          draw();
+          return;
+        }
+      }
+
+      // Book
+      if (hit(x, y, 60, 135, 55, 20)) {
+        if (!state.r1.bookChecked) {
+          state.r1.bookChecked = true;
+          addItem('matches');
+          addItem('cracker');
+          msg('Inside the journal: a box of matches and a dry cracker fall out.', 3500);
+          sparks(x, y, ['#c8a050', '#8a6030']);
+        } else {
+          msg('Just an old journal. The pages are blank.');
+        }
+        draw(); return;
+      }
+      // Fireplace
+      if (hit(x, y, 170, 80, 100, 170)) {
+        if (state.r1.fireLit) { msg('The fire crackles warmly.'); return; }
+        if (selectedItem && selectedItem.id === 'matches') {
+          state.r1.fireLit = true;
+          removeItem('matches');
+          selectedItem = null;
+          msg('The fireplace roars to life. Wax on the drawer begins to melt...', 3000);
+          sparks(220, 180, ['#ff6600', '#ff9900', '#ffcc00']);
+          draw(); return;
+        }
+        msg('The fireplace is cold and dark. You need something to light it.');
+        return;
+      }
+      // Painting
+      if (hit(x, y, 305, 54, 92, 96)) {
+        state.r1.paintingLookedAt = true;
+        msg('A painting of a dark lake. A clock in the corner shows three symbols beneath the moon: △ ○ ✕', 4000);
+        draw(); return;
+      }
+      // Drawer lock
+      if (hit(x, y, 55, 148, 100, 40)) {
+        if (state.r1.drawerUnlocked) {
+          state.r1.drawerOpen = !state.r1.drawerOpen;
+          if (state.r1.drawerOpen) {
+            addItem('key');
+            addItem('candle');
+            msg('Inside: an iron key and a wax candle.', 3000);
+            sparks(x, y, ['#c8a050']);
+          }
+          draw(); return;
+        }
+        if (!state.r1.fireLit) { msg('The drawer is locked. A strange wax seal covers the lock.'); return; }
+        // Show symbol lock
+        r1ShowLock = true;
+        msg('Three symbols are burned into the wax. Enter them: △ ○ ✕  (type 1 2 3 and press Enter)', 5000);
+        draw(); return;
+      }
+      // Candle on mantel
+      if (hit(x, y, 274, 62, 18, 26) && !hasItem('candle') && !hasItem('candlelit')) {
+        addItem('candle');
+        msg('You take the candle from the mantelpiece.', 2500);
+        sparks(x, y, ['#d4c090']);
+        draw(); return;
+      }
+      // Right arrow — go to room 2
+      if (x > 430 && y > 80 && y < 220) {
+        if (!state.r1.drawerOpen && !hasItem('key')) { msg('Find a way to open the drawer first.'); return; }
+        goRoom(2); return;
+      }
+    }
+
+    // Symbol lock keyboard
+    document.addEventListener('keydown', e => {
+      if (scene !== 1) return;
+      if (!r1ShowLock) return;
+      if (e.key === '1' && r1SymbolEntered.length < 3) { r1SymbolEntered.push('△'); draw(); }
+      if (e.key === '2' && r1SymbolEntered.length < 3) { r1SymbolEntered.push('○'); draw(); }
+      if (e.key === '3' && r1SymbolEntered.length < 3) { r1SymbolEntered.push('✕'); draw(); }
+      if (e.key === 'Backspace') { r1SymbolEntered.pop(); draw(); }
+      if (e.key === 'Enter') {
+        if (r1SymbolEntered.join('') === '△○✕') {
+          state.r1.drawerUnlocked = true;
+          r1ShowLock = false;
+          r1SymbolEntered = [];
+          msg('Click! The drawer unlocks.', 2500);
+          sparks(105, 165, ['#c8a050', '#f5e0a0']);
+        } else {
+          msg('Wrong. The drawer holds firm.');
+          r1SymbolEntered = [];
+        }
+        draw();
+      }
+    });
+
+    // ══════════════════════════════════════════════════════════
+    // ROOM 2 — THE HALLWAY
+    // ══════════════════════════════════════════════════════════
+    const CORRECT_DOOR = 2; // middle door (0,1,2)
+    const DOOR_NUMBERS = [4, 2, 9]; // numbers hidden in shadows
+    // clue: sum of door numbers minus 11 = correct door index... actually: door with "2" above it
+
+    function drawRoom2() {
+      const c = ctx;
+      c.clearRect(0, 0, 480, 300);
+      c.fillStyle = '#080604'; c.fillRect(0, 0, 480, 300);
+
+      // perspective hallway
+      const vx = 240, vy = 150;
+      c.fillStyle = '#0e0c08';
+      // walls
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(480, 0); c.lineTo(vx + 80, vy - 60); c.lineTo(vx - 80, vy - 60); c.closePath(); c.fill(); // ceiling strip
+      // left wall
+      c.fillStyle = '#0c0a07';
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(80, 0); c.lineTo(vx - 80, vy - 60); c.lineTo(0, 300); c.closePath(); c.fill();
+      // right wall
+      c.beginPath(); c.moveTo(480, 0); c.lineTo(400, 0); c.lineTo(vx + 80, vy - 60); c.lineTo(480, 300); c.closePath(); c.fill();
+      // floor
+      c.fillStyle = '#0a0806';
+      c.beginPath(); c.moveTo(0, 300); c.lineTo(480, 300); c.lineTo(vx + 80, vy - 60); c.lineTo(vx - 80, vy - 60); c.closePath(); c.fill();
+
+      // wallpaper stripes
+      c.strokeStyle = '#181208'; c.lineWidth = 0.5;
+      for (let i = 0; i < 8; i++) {
+        const x = i * 60;
+        c.beginPath(); c.moveTo(x, 0); c.lineTo(vx - 80 + (x / 480) * 160, vy - 60); c.stroke();
+      }
+
+      // THREE DOORS at end of hall
+      const doors = [
+        { x: vx - 75, y: vy - 58, w: 32, h: 52 },
+        { x: vx - 16, y: vy - 58, w: 32, h: 52 },
+        { x: vx + 43, y: vy - 58, w: 32, h: 52 },
+      ];
+      doors.forEach((d, i) => {
+        const tried = state.r2.doorsTried.includes(i);
+        c.fillStyle = tried && i !== CORRECT_DOOR ? '#1a0808' : '#1a1208';
+        c.beginPath(); c.roundRect(d.x, d.y, d.w, d.h, 1); c.fill();
+        c.strokeStyle = i === CORRECT_DOOR && state.r2.correctDoor ? '#c8a050' : '#2a1e0e';
+        c.lineWidth = 1; c.strokeRect(d.x, d.y, d.w, d.h);
+        // door knob
+        c.fillStyle = '#4a3818';
+        c.beginPath(); c.arc(i === 0 ? d.x + d.w - 5 : d.x + 4, d.y + d.h / 2, 2, 0, Math.PI * 2); c.fill();
+        // number above door (only visible with lit candle)
+        if (state.r2.candleLit) {
+          c.fillStyle = 'rgba(200,160,80,0.9)'; c.font = '9px Special Elite'; c.textAlign = 'center';
+          c.fillText(DOOR_NUMBERS[i], d.x + d.w / 2, d.y - 5);
+          c.textAlign = 'left';
+        }
+      });
+
+      // SHADOW PAINTINGS on walls (3 frames)
+      // Left wall painting
+      const shadow1Shown = state.r2.candleLit;
+      c.fillStyle = '#0f0d09'; c.strokeStyle = '#2a2010'; c.lineWidth = 1;
+      c.beginPath(); c.roundRect(15, 60, 65, 80, 2); c.fill(); c.stroke();
+      if (shadow1Shown) {
+        // shadow reveals number shape
+        c.fillStyle = 'rgba(200,160,80,0.15)';
+        c.fillRect(17, 62, 61, 76);
+        c.fillStyle = 'rgba(200,160,80,0.6)'; c.font = '28px Special Elite'; c.textAlign = 'center';
+        c.fillText('4', 47, 110);
+        c.textAlign = 'left';
+        c.fillStyle = '#6a5030'; c.font = '8px Special Elite';
+        c.fillText('shadow reveals: 4', 17, 152);
+      } else {
+        c.fillStyle = '#181410'; c.fillRect(17, 62, 61, 76);
+        c.fillStyle = '#2a2018'; c.font = '8px Special Elite';
+        c.fillText('dark painting', 18, 104);
+      }
+
+      // Right wall painting
+      c.fillStyle = '#0f0d09'; c.strokeStyle = '#2a2010'; c.lineWidth = 1;
+      c.beginPath(); c.roundRect(398, 60, 65, 80, 2); c.fill(); c.stroke();
+      if (shadow1Shown) {
+        c.fillStyle = 'rgba(200,160,80,0.15)'; c.fillRect(400, 62, 61, 76);
+        c.fillStyle = 'rgba(200,160,80,0.6)'; c.font = '28px Special Elite'; c.textAlign = 'center';
+        c.fillText('9', 430, 110);
+        c.textAlign = 'left';
+        c.fillStyle = '#6a5030'; c.font = '8px Special Elite';
+        c.fillText('shadow reveals: 9', 400, 152);
+      } else {
+        c.fillStyle = '#181410'; c.fillRect(400, 62, 61, 76);
+        c.fillStyle = '#2a2018'; c.font = '8px Special Elite';
+        c.fillText('dark painting', 400, 104);
+      }
+
+      // Candle holder on wall sconce
+      if (!state.r2.candleLit) {
+        c.fillStyle = '#2a1e0e';
+        c.beginPath(); c.roundRect(220, 100, 8, 20, 1); c.fill();
+        c.fillStyle = '#c8a050'; c.font = '9px Special Elite';
+        c.fillText('hold candle here', 196, 95);
+      } else {
+        c.fillStyle = '#2a1e0e';
+        c.beginPath(); c.roundRect(220, 100, 8, 20, 1); c.fill();
+        drawFlame(224, 100, 10, '#ff9900');
+        const cg = c.createRadialGradient(224, 100, 5, 224, 100, 80);
+        cg.addColorStop(0, 'rgba(255,150,30,0.2)'); cg.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = cg; c.fillRect(150, 50, 150, 160);
+      }
+
+      // clue text
+      if (state.r2.candleLit) {
+        c.fillStyle = '#6a5030'; c.font = '9px Special Elite'; c.textAlign = 'center';
+        c.fillText('the door marked with the shadow number', 240, 260);
+        c.fillText('that appears on BOTH walls', 240, 272);
+        c.textAlign = 'left';
+      }
+
+      // wrong door effect
+      if (state.r2.doorsTried.length > 0 && !state.r2.correctDoor) {
+        const last = state.r2.doorsTried[state.r2.doorsTried.length - 1];
+        if (last !== CORRECT_DOOR) {
+          c.fillStyle = 'rgba(80,0,0,0.15)'; c.fillRect(0, 0, 480, 300);
+        }
+      }
+
+      drawVignette(0.75);
+    }
+
+    function clickRoom2(x, y) {
+      // Back arrow
+      if (x < 25 && y > 120 && y < 180) { goRoom(1); return; }
+
+      // Sconce - place candle
+      if (hit(x, y, 210, 85, 30, 45)) {
+        if (hasItem('candle') && selectedItem && selectedItem.id === 'candle') {
+          state.r2.candleLit = true;
+          removeItem('candle');
+          addItem('candlelit');
+          selectedItem = null;
+          msg('The candle illuminates the hallway. Shadows take shape on the walls.', 3500);
+          sparks(224, 95, ['#ff9900', '#ffcc00', '#c8a050']);
+          draw(); return;
+        }
+        if (hasItem('candlelit') && selectedItem && selectedItem.id === 'candlelit') {
+          state.r2.candleLit = true;
+          msg('The candle already lights the way.');
+          return;
+        }
+        msg('A sconce on the wall. It needs something to hold a flame.');
+        return;
+      }
+
+      // Doors
+      const doors = [
+        { x: vx - 75, y: vy - 58, w: 32, h: 52 },
+        { x: vx - 16, y: vy - 58, w: 32, h: 52 },
+        { x: vx + 43, y: vy - 58, w: 32, h: 52 },
+      ];
+      for (let i = 0; i < 3; i++) {
+        const d = doors[i];
+        if (hit(x, y, d.x, d.y, d.w, d.h)) {
+          if (!state.r2.candleLit) { msg('Too dark to see which door is safe. You need light.'); return; }
+          if (i === CORRECT_DOOR) {
+            state.r2.correctDoor = true;
+            msg('The door swings open. Cold air rushes in...', 2500);
+            sparks(x, y, ['#c8a050', '#a0c0a0']);
+            setTimeout(() => goRoom(3), 1800);
+          } else {
+            if (!state.r2.doorsTried.includes(i)) state.r2.doorsTried.push(i);
+            msg('Wrong door. Something moans behind it. You stumble back.');
+            sparks(x, y, ['#8a2020', '#4a1010']);
+          }
+          draw(); return;
+        }
+      }
+
+      // Right edge - hint when trying to leave
+      if (x > 430 && y > 80 && y < 220) {
+        if (!state.r2.candleLit) msg('Too dark to see the way forward. You need light.');
+        else if (!state.r2.correctDoor) msg('You must find the correct door.');
+        return;
+      }
+
+      // Paintings
+      if (hit(x, y, 13, 58, 69, 84)) {
+        if (!state.r2.candleLit) msg('The painting is too dark to make out.');
+        else msg('A shadow in the shape of "4" appears when the candle is near.');
+        return;
+      }
+      if (hit(x, y, 396, 58, 69, 84)) {
+        if (!state.r2.candleLit) msg('The painting is too dark to make out.');
+        else msg('A shadow in the shape of "9" appears on this side too. Wait — only one number matches both walls... look at the doors.');
+        return;
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // ROOM 3 — THE LAKE SHORE
+    // ══════════════════════════════════════════════════════════
+    function drawRoom3() {
+      const c = ctx;
+      c.clearRect(0, 0, 480, 300);
+
+      // night sky
+      const sky = c.createLinearGradient(0, 0, 0, 180);
+      sky.addColorStop(0, '#020408');
+      sky.addColorStop(1, '#05080f');
+      c.fillStyle = sky; c.fillRect(0, 0, 480, 180);
+
+      // stars
+      c.fillStyle = 'rgba(200,220,255,0.7)';
+      const starPos = [[45, 20], [120, 35], [200, 15], [280, 28], [350, 18], [410, 40], [60, 55], [170, 48], [320, 52], [440, 30], [90, 12], [240, 42]];
+      starPos.forEach(([sx, sy]) => {
+        c.beginPath(); c.arc(sx, sy, 0.8 + Math.random() * 0.5, 0, Math.PI * 2); c.fill();
+      });
+
+      // moon
+      c.fillStyle = 'rgba(220,210,180,0.85)';
+      c.beginPath(); c.arc(380, 45, 18, 0, Math.PI * 2); c.fill();
+      c.fillStyle = 'rgba(180,170,140,0.3)';
+      c.beginPath(); c.arc(374, 41, 6, 0, Math.PI * 2); c.fill();
+      // moon reflection on water
+      c.fillStyle = 'rgba(200,190,160,0.15)';
+      c.beginPath(); c.ellipse(400, 220, 15, 40, 0.3, 0, Math.PI * 2); c.fill();
+
+      // dark lake
+      const water = c.createLinearGradient(0, 175, 0, 280);
+      water.addColorStop(0, '#050c14');
+      water.addColorStop(1, '#020608');
+      c.fillStyle = water; c.fillRect(0, 175, 480, 125);
+
+      // water ripples
+      c.strokeStyle = 'rgba(100,130,160,0.12)'; c.lineWidth = 1;
+      for (let i = 0; i < 6; i++) {
+        c.beginPath();
+        c.moveTo(20, 195 + i * 14);
+        c.bezierCurveTo(120, 188 + i * 14, 360, 200 + i * 14, 460, 193 + i * 14);
+        c.stroke();
+      }
+
+      // shore / ground
+      c.fillStyle = '#0e0c08'; c.fillRect(0, 168, 480, 15);
+      c.strokeStyle = '#1e1a10'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(0, 168); c.lineTo(480, 168); c.stroke();
+
+      // dark trees silhouette
+      c.fillStyle = '#050403';
+      for (let i = 0; i < 12; i++) {
+        const tx = i * 42 - 5;
+        const th = 60 + Math.sin(i * 1.7) * 30;
+        c.beginPath();
+        c.moveTo(tx, 168);
+        c.lineTo(tx + 4, 168 - th);
+        c.lineTo(tx + 8, 168 - th * 0.6);
+        c.lineTo(tx + 12, 168 - th * 0.9);
+        c.lineTo(tx + 16, 168 - th);
+        c.lineTo(tx + 20, 168);
+        c.closePath(); c.fill();
+      }
+
+      // BOAT
+      c.fillStyle = '#2a1e0e'; c.strokeStyle = '#3a2e1e'; c.lineWidth = 1.5;
+      c.beginPath();
+      c.moveTo(80, 190); c.quadraticCurveTo(130, 200, 180, 190);
+      c.lineTo(175, 180); c.quadraticCurveTo(130, 185, 85, 180); c.closePath();
+      c.fill(); c.stroke();
+      // oar
+      c.strokeStyle = '#3a2a10'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(100, 183); c.lineTo(75, 215); c.stroke();
+      c.fillStyle = '#4a3820'; c.fillRect(70, 213, 12, 5);
+      // rope
+      c.strokeStyle = '#4a3820'; c.lineWidth = 1; c.setLineDash([3, 3]);
+      c.beginPath(); c.moveTo(85, 188); c.lineTo(70, 175); c.stroke();
+      c.setLineDash([]);
+
+      // POST with CROW
+      c.fillStyle = '#1a1208'; c.fillRect(300, 130, 8, 42);
+      c.fillStyle = '#241a0e'; c.fillRect(295, 128, 18, 5);
+      // Crow
+      c.fillStyle = '#0d0a08';
+      c.beginPath(); c.ellipse(308, 122, 10, 7, 0.2, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.ellipse(314, 119, 6, 5, -0.3, 0, Math.PI * 2); c.fill(); // head
+      // crow eye
+      c.fillStyle = 'rgba(180,100,80,0.8)';
+      c.beginPath(); c.arc(317, 118, 1.5, 0, Math.PI * 2); c.fill();
+      // crow beak
+      c.fillStyle = '#2a2010'; c.beginPath(); c.moveTo(320, 119); c.lineTo(325, 121); c.lineTo(320, 122); c.closePath(); c.fill();
+      // note in beak
+      if (!state.r3.crackerGiven) {
+        c.fillStyle = '#d4c090';
+        c.beginPath(); c.moveTo(322, 120); c.lineTo(330, 118); c.lineTo(332, 122); c.lineTo(324, 124); c.closePath(); c.fill();
+        c.fillStyle = '#4a3820'; c.font = '6px Special Elite';
+        c.fillText('note', 323, 121);
+      }
+
+      // crow wings if interacted
+      if (state.r3.crowInteracted && !state.r3.crackerGiven) {
+        c.strokeStyle = '#0d0a08'; c.lineWidth = 2;
+        c.beginPath(); c.moveTo(305, 123); c.quadraticCurveTo(295, 115, 290, 120); c.stroke();
+        c.beginPath(); c.moveTo(311, 123); c.quadraticCurveTo(320, 115, 326, 120); c.stroke();
+      }
+
+      // Locket on ground (dropped by crow)
+      if (state.r3.crackerGiven && !hasItem('locket')) {
+        c.fillStyle = '#c8a050'; c.strokeStyle = '#8a6030'; c.lineWidth = 1;
+        c.beginPath(); c.arc(310, 168, 7, 0, Math.PI * 2); c.fill(); c.stroke();
+        c.fillStyle = '#8a6030'; c.font = '7px Special Elite'; c.textAlign = 'center';
+        c.fillText('✦', 310, 171);
+        c.textAlign = 'left';
+      }
+
+      // locket opened
+      if (state.r3.locketOpened && !hasItem('locket')) {
+        c.fillStyle = 'rgba(200,160,80,0.9)'; c.font = '10px Special Elite'; c.textAlign = 'center';
+        c.fillText('"SEVEN"', 240, 260);
+        c.fillText('written in the mirror, backwards: NEVES', 240, 275);
+        c.textAlign = 'left';
+      }
+
+      drawVignette(0.6);
+    }
+
+    function clickRoom3(x, y) {
+      if (x < 25 && y > 120 && y < 180) { goRoom(2); return; }
+      if (x > 450 && y > 120 && y < 180) {
+        if (!state.r3.locketOpened) { msg('You should open the locket first. It holds something important.'); return; }
+        state.r3.boatUsed = true;
+        goRoom(4); return;
+      }
+
+      // Boat
+      if (hit(x, y, 75, 175, 110, 30)) {
+        if (!state.r3.locketOpened) { msg('The boat rocks gently. But you feel you need to find something first.'); return; }
+        state.r3.boatUsed = true;
+        msg('You climb into the boat. It moves on its own, into the dark water...', 2000);
+        setTimeout(() => goRoom(4), 2000);
+        return;
+      }
+
+      // Crow
+      if (hit(x, y, 295, 110, 40, 45)) {
+        state.r3.crowInteracted = true;
+        if (state.r3.crackerGiven) { msg('The crow watches you with its red eye.'); return; }
+        if (selectedItem && selectedItem.id === 'cracker') {
+          state.r3.crackerGiven = true;
+          removeItem('cracker');
+          selectedItem = null;
+          msg('The crow snatches the cracker and drops the note — a brass locket falls to the ground.', 3500);
+          sparks(310, 120, ['#c8a050', '#8a6030']);
+          draw(); return;
+        }
+        msg('The crow has something in its beak. It eyes you hungrily. Perhaps it wants something in return.', 3500);
+        draw(); return;
+      }
+
+      // Locket on ground
+      if (!hasItem('locket') && state.r3.crackerGiven && hitC(x, y, 310, 168, 12)) {
+        addItem('locket');
+        msg('You pick up the locket. It feels warm.', 2500);
+        sparks(310, 168, ['#c8a050', '#f5e0a0']);
+        draw(); return;
+      }
+
+      // Use locket
+      if (hasItem('locket') && selectedItem && selectedItem.id === 'locket') {
+        state.r3.locketOpened = true;
+        msg('The locket opens. Inside, a tiny mirror. Written backwards in red ink: "NEVES" — which is SEVEN reversed.', 5000);
+        sparks(x, y, ['#c8a050', '#f5e0a0', '#e0c080']);
+        draw(); return;
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // ROOM 4 — THE UNDERWATER ROOM
+    // ══════════════════════════════════════════════════════════
+    function drawRoom4() {
+      const c = ctx;
+      c.clearRect(0, 0, 480, 300);
+
+      // underwater blue-green
+      const bg = c.createLinearGradient(0, 0, 0, 300);
+      bg.addColorStop(0, '#020c10');
+      bg.addColorStop(1, '#040e18');
+      c.fillStyle = bg; c.fillRect(0, 0, 480, 300);
+
+      // water caustics / light rays
+      c.strokeStyle = 'rgba(50,100,120,0.08)'; c.lineWidth = 20;
+      c.beginPath(); c.moveTo(100, -10); c.lineTo(140, 310); c.stroke();
+      c.beginPath(); c.moveTo(240, -10); c.lineTo(200, 310); c.stroke();
+      c.beginPath(); c.moveTo(380, -10); c.lineTo(350, 310); c.stroke();
+
+      // bubbles
+      c.strokeStyle = 'rgba(100,160,180,0.2)'; c.lineWidth = 0.8;
+      [[50, 80], [120, 150], [300, 60], [420, 200], [200, 250], [350, 130]].forEach(([bx, by]) => {
+        c.beginPath(); c.arc(bx, by, 3 + Math.random() * 4, 0, Math.PI * 2); c.stroke();
+      });
+
+      // floor
+      c.fillStyle = '#030a0e'; c.fillRect(0, 260, 480, 40);
+      c.strokeStyle = '#0a1a20'; c.lineWidth = 1;
+      for (let i = 0; i < 8; i++) {
+        c.beginPath(); c.moveTo(i * 60, 260); c.lineTo(i * 60, 300); c.stroke();
+      }
+
+      // walls faint
+      c.fillStyle = '#040c12'; c.fillRect(0, 0, 20, 300); c.fillRect(460, 0, 20, 300);
+      c.strokeStyle = '#0a1a22'; c.lineWidth = 1;
+      c.strokeRect(20, 20, 440, 240);
+
+      // MUSIC BOX center table
+      c.fillStyle = '#0e1a1e'; c.strokeStyle = '#1a2c30'; c.lineWidth = 1.5;
+      c.beginPath(); c.roundRect(160, 160, 160, 60, 4); c.fill(); c.stroke();
+      c.fillStyle = '#0a1418'; c.fillRect(164, 164, 152, 52);
+      // music box lid
+      c.fillStyle = '#122028'; c.strokeStyle = '#1e3040'; c.lineWidth = 1;
+      c.beginPath(); c.roundRect(162, 148, 156, 18, 3); c.fill(); c.stroke();
+      // music box details
+      c.strokeStyle = '#1e3040'; c.lineWidth = 0.5;
+      c.beginPath(); c.moveTo(240, 164); c.lineTo(240, 216); c.stroke();
+      // handle
+      c.strokeStyle = '#c8a050'; c.lineWidth = 2;
+      c.beginPath(); c.arc(320, 155, 8, 0, Math.PI * 1.5); c.stroke();
+      c.fillStyle = '#c8a050'; c.beginPath(); c.arc(320, 163, 3, 0, Math.PI * 2); c.fill();
+
+      // Turn counter
+      c.fillStyle = 'rgba(200,160,80,0.15)';
+      c.beginPath(); c.roundRect(170, 170, 80, 38, 3); c.fill();
+      c.fillStyle = '#c8a050'; c.font = '28px Special Elite'; c.textAlign = 'center';
+      c.fillText(state.r4.musicBoxTurns, 210, 200);
+      c.fillStyle = '#4a6070'; c.font = '8px Special Elite';
+      c.fillText('turns / 7', 210, 212);
+      c.textAlign = 'left';
+
+      // musical notes floating
+      c.fillStyle = 'rgba(100,160,180,0.3)'; c.font = '14px serif';
+      c.fillText('♪', 80, 120); c.fillText('♫', 390, 90); c.fillText('♩', 170, 70);
+
+      // GLASS CASE right
+      c.fillStyle = 'rgba(30,50,60,0.6)'; c.strokeStyle = '#1e3040'; c.lineWidth = 2;
+      c.beginPath(); c.roundRect(340, 100, 100, 120, 4); c.fill(); c.stroke();
+      // glass shine
+      c.strokeStyle = 'rgba(100,160,180,0.2)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(345, 105); c.lineTo(345, 215); c.stroke();
+      // contents
+      if (!state.r4.glassOpened) {
+        c.fillStyle = '#c8a050'; c.font = '18px Special Elite'; c.textAlign = 'center';
+        c.fillText('🗝', 390, 165);
+        c.fillStyle = 'rgba(200,160,80,0.2)';
+        c.beginPath(); c.ellipse(390, 165, 20, 20, 0, 0, Math.PI * 2); c.fill();
+      } else {
+        c.fillStyle = '#2a4040'; c.fillRect(342, 102, 96, 116);
+        c.fillStyle = '#3a5050'; c.font = '9px Special Elite'; c.textAlign = 'center';
+        c.fillText('taken', 390, 165);
+      }
+      c.textAlign = 'left';
+
+      // clue on wall
+      c.fillStyle = 'rgba(100,160,180,0.3)'; c.font = '9px Special Elite';
+      c.fillText('wind the box to the right number of turns.', 40, 280);
+      c.fillText('the word from the locket holds the answer.', 40, 292);
+
+      // success glow
+      if (state.r4.glassOpened) {
+        c.fillStyle = 'rgba(200,160,80,0.08)'; c.fillRect(0, 0, 480, 300);
+      }
+
+      drawVignette(0.65);
+    }
+
+    function clickRoom4(x, y) {
+      if (x < 25 && y > 120 && y < 180) { goRoom(3); return; }
+      if (x > 450 && y > 120 && y < 180) {
+        if (!state.r4.keyTaken) { msg('The case still holds something you need.'); return; }
+        goRoom(5); return;
+      }
+
+      // Music box handle
+      if (hit(x, y, 308, 144, 28, 28)) {
+        if (state.r4.glassOpened) { msg('The music box is already wound. A faint melody plays.'); return; }
+        if (state.r4.musicBoxTurns >= state.r4.targetTurns) {
+          msg('Already at 7. Try the glass case now.');
+          return;
+        }
+        state.r4.musicBoxTurns++;
+        sparks(320, 155, ['#c8a050', '#1e3040']);
+        if (state.r4.musicBoxTurns === state.r4.targetTurns) {
+          state.r4.glassOpened = true;
+          msg('Seven turns. A melody plays — the glass case hisses open.', 3000);
+          sparks(390, 160, ['#c8a050', '#a0c0c0', '#f5e0a0']);
+        } else {
+          msg(`${state.r4.musicBoxTurns} turn${state.r4.musicBoxTurns > 1 ? 's' : ''} wound. The word from the locket — count the letters.`);
+        }
+        draw(); return;
+      }
+
+      // Glass case
+      if (hit(x, y, 338, 98, 104, 124)) {
+        if (!state.r4.glassOpened) { msg('The glass case is sealed shut. The music box must open it.'); return; }
+        if (state.r4.keyTaken) { msg('The case is empty now.'); return; }
+        state.r4.keyTaken = true;
+        addItem('key');
+        msg('You take the iron key from the case. It glows faintly.', 2500);
+        sparks(390, 160, ['#c8a050', '#f5e0a0']);
+        draw(); return;
+      }
+
+      // Music box body
+      if (hit(x, y, 158, 146, 164, 76)) {
+        if (!state.r4.glassOpened) msg('An intricate music box. There is a winding handle on the right side. SEVEN turns will unlock the case — the locket told you this.');
+        else msg('The music box plays a soft, eerie lullaby.');
+        return;
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // ROOM 5 — THE HEART ROOM
+    // ══════════════════════════════════════════════════════════
+    function drawRoom5() {
+      const c = ctx;
+      c.clearRect(0, 0, 480, 300);
+      c.fillStyle = '#0e0905'; c.fillRect(0, 0, 480, 300);
+
+      // warm wallpaper
+      c.fillStyle = '#1a1008';
+      c.fillRect(20, 20, 440, 220);
+      // soft warm pattern
+      c.strokeStyle = '#221508'; c.lineWidth = 0.5;
+      for (let x = 20; x < 460; x += 20) for (let y = 20; y < 240; y += 20) {
+        c.beginPath(); c.arc(x, y, 2, 0, Math.PI * 2); c.stroke();
+      }
+
+      // warm glow
+      const wg = c.createRadialGradient(240, 130, 20, 240, 130, 200);
+      wg.addColorStop(0, 'rgba(200,120,60,0.12)');
+      wg.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = wg; c.fillRect(0, 0, 480, 300);
+
+      // floor
+      c.fillStyle = '#0e0905'; c.fillRect(0, 240, 480, 60);
+      c.strokeStyle = '#1a1208'; c.lineWidth = 1;
+      for (let x = 0; x < 480; x += 50) { c.beginPath(); c.moveTo(x, 240); c.lineTo(x, 300); c.stroke(); }
+
+      // Flowers scattered (wilting beautifully)
+      const flowerPos = [[60, 200], [100, 210], [380, 198], [420, 208], [140, 215], [340, 213]];
+      flowerPos.forEach(([fx, fy], i) => {
+        const col = i % 2 === 0 ? '#c8607a' : '#d48040';
+        c.strokeStyle = '#4a7020'; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(fx, fy); c.quadraticCurveTo(fx - 4, fy - 20, fx + 2, fy - 35); c.stroke();
+        c.fillStyle = col;
+        c.beginPath(); c.ellipse(fx + 2, fy - 38, 5, 8, 0.3, 0, Math.PI * 2); c.fill();
+        c.fillStyle = col + '80';
+        c.beginPath(); c.ellipse(fx - 3, fy - 36, 4, 7, -0.5, 0, Math.PI * 2); c.fill();
+      });
+
+      // CENTER BOX
+      c.fillStyle = '#2a1a0a'; c.strokeStyle = '#c8a050'; c.lineWidth = 2;
+      c.beginPath(); c.roundRect(175, 115, 130, 90, 4); c.fill(); c.stroke();
+      // gold corners
+      c.fillStyle = '#c8a050';
+      [[175, 115], [299, 115], [175, 199], [299, 199]].forEach(([cx, cy]) => {
+        c.beginPath(); c.arc(cx, cy, 5, 0, Math.PI * 2); c.fill();
+      });
+      // keyhole
+      c.fillStyle = '#0e0905';
+      c.beginPath(); c.arc(240, 153, 7, 0, Math.PI * 2); c.fill();
+      c.fillRect(237, 153, 6, 12);
+      c.strokeStyle = '#c8a050'; c.lineWidth = 1;
+      c.beginPath(); c.arc(240, 153, 7, 0, Math.PI * 2); c.stroke();
+      c.strokeRect(237, 153, 6, 12);
+
+      if (state.r5.keyUsed) {
+        // open box - letter inside
+        c.fillStyle = '#1a1208'; c.fillRect(177, 117, 126, 88);
+        c.fillStyle = '#c8b89a'; c.font = '9px Special Elite'; c.textAlign = 'center';
+        c.fillText('a letter...', 240, 163);
+        c.textAlign = 'left';
+        // glow
+        const og = c.createRadialGradient(240, 160, 10, 240, 160, 100);
+        og.addColorStop(0, 'rgba(200,160,80,0.25)');
+        og.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = og; c.fillRect(140, 100, 200, 140);
+      }
+
+      // small text
+      if (!state.r5.keyUsed) {
+        c.fillStyle = '#4a3020'; c.font = '9px Special Elite'; c.textAlign = 'center';
+        c.fillText('use the key on the box', 240, 285);
+        c.textAlign = 'left';
+      }
+
+      drawVignette(0.55);
+    }
+
+    function clickRoom5(x, y) {
+      if (x < 25 && y > 120 && y < 180) { goRoom(4); return; }
+
+      // Box
+      if (hit(x, y, 173, 113, 134, 94)) {
+        if (state.r5.keyUsed) {
+          msg('The box is open. Read the letter inside...');
+          setTimeout(() => showFinal(), 1000);
+          return;
+        }
+        if (hasItem('key') && selectedItem && selectedItem.id === 'key') {
+          state.r5.keyUsed = true;
+          removeItem('key');
+          selectedItem = null;
+          msg('The key fits. The box opens with a warm glow. There is a letter inside.', 3000);
+          sparks(240, 155, ['#c8a050', '#f5e0a0', '#e0a0c0']);
+          draw();
+          setTimeout(() => showFinal(), 3500);
+          return;
+        }
+        msg('The box is locked. A key from somewhere in this place will open it.');
+        return;
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // SCENE MANAGEMENT
+    // ══════════════════════════════════════════════════════════
+    const vx = 240, vy = 150;
+
+    function goRoom(n) {
+      if (typeof updateAmbience === 'function') updateAmbience(n);
+      scene = n;
+      draw();
+    }
+
+    function canGoLeft() { return scene > 1; }
+    function canGoRight() {
+      if (scene === 1) return state.r1.drawerOpen || hasItem('key');
+      if (scene === 2) return state.r2.correctDoor;
+      if (scene === 3) return state.r3.locketOpened;
+      if (scene === 4) return state.r4.keyTaken;
+      return false;
+    }
+
+    function drawArrows() {
+      const c = ctx;
+      const y = 155;
+      if (canGoLeft()) {
+        c.fillStyle = 'rgba(10,7,5,0.7)';
+        c.beginPath(); c.arc(16, y, 14, 0, Math.PI * 2); c.fill();
+        c.fillStyle = '#c8a050'; c.font = '24px serif'; c.textAlign = 'center';
+        c.fillText('‹', 16, y + 5);
+      }
+      if (canGoRight() && scene < 5) {
+        c.fillStyle = 'rgba(10,7,5,0.7)';
+        c.beginPath(); c.arc(464, y, 14, 0, Math.PI * 2); c.fill();
+        c.fillStyle = '#c8a050'; c.font = '24px serif'; c.textAlign = 'center';
+        c.fillText('›', 464, y + 5);
+      }
+      c.textAlign = 'left';
+    }
+
+    function draw() {
+      if (scene === 1) drawRoom1();
+      else if (scene === 2) drawRoom2();
+      else if (scene === 3) drawRoom3();
+      else if (scene === 4) drawRoom4();
+      else if (scene === 5) drawRoom5();
+      drawArrows();
+    }
+
+    // Main click handler
+    function handleTap(clientX, clientY) {
+      const r = C.getBoundingClientRect();
+      const x = (clientX - r.left) * (480 / r.width);
+      const y = (clientY - r.top) * (300 / r.height);
+      if (scene === 1) sndRoom1(x, y);
+      else if (scene === 2) sndRoom2(x, y);
+      else if (scene === 3) sndRoom3(x, y);
+      else if (scene === 4) sndRoom4(x, y);
+      else if (scene === 5) sndRoom5(x, y);
+    }
+
+    C.addEventListener('click', e => {
+      handleTap(e.clientX, e.clientY);
+    });
+
+    C.addEventListener('touchend', e => {
+      e.preventDefault();
+      const t = e.changedTouches[0];
+      if (t) handleTap(t.clientX, t.clientY);
+    }, { passive: false });
+
+    C.addEventListener('mousemove', e => {
+      const r = C.getBoundingClientRect();
+      const x = (e.clientX - r.left) * (480 / r.width);
+      const y = (e.clientY - r.top) * (300 / r.height);
+      let cursor = 'default';
+      if (scene === 1) {
+        if (r1ShowLock && hit(x, y, 35, 75, 140, 70)) {
+          const btnY = 115;
+          for (let idx = 0; idx < 4; idx++) {
+            if (hit(x, y, 42 + idx * 31, btnY, 26, 20)) cursor = 'pointer';
+          }
+        } else {
+          if (hit(x, y, 60, 135, 55, 20) || hit(x, y, 170, 80, 100, 170) || hit(x, y, 305, 54, 92, 96) || hit(x, y, 55, 148, 100, 40) || hit(x, y, 274, 62, 18, 26)) cursor = 'pointer';
+          if (x > 430 && y > 80 && y < 220) cursor = 'pointer';
+        }
+      } else if (scene === 2) {
+        if (x < 25 && y > 120 && y < 180) cursor = 'pointer';
+        if (x > 430 && y > 80 && y < 220) cursor = 'pointer';
+        const doors = [{ x: vx - 75, y: vy - 58, w: 32, h: 52 }, { x: vx - 16, y: vy - 58, w: 32, h: 52 }, { x: vx + 43, y: vy - 58, w: 32, h: 52 }];
+        doors.forEach(d => { if (hit(x, y, d.x, d.y, d.w, d.h)) cursor = 'pointer'; });
+        if (hit(x, y, 210, 85, 30, 45)) cursor = 'pointer';
+        if (hit(x, y, 13, 58, 69, 84) || hit(x, y, 396, 58, 69, 84)) cursor = 'pointer';
+      } else if (scene === 3) {
+        if (x < 25 && y > 120 && y < 180) cursor = 'pointer';
+        if (x > 450 && y > 120 && y < 180) cursor = 'pointer';
+        if (hit(x, y, 75, 175, 110, 30) || hit(x, y, 295, 110, 40, 45)) cursor = 'pointer';
+        if (!hasItem('locket') && state.r3.crackerGiven && hitC(x, y, 310, 168, 12)) cursor = 'pointer';
+      } else if (scene === 4) {
+        if (x < 25 && y > 120 && y < 180) cursor = 'pointer';
+        if (x > 450 && y > 120 && y < 180) cursor = 'pointer';
+        if (hit(x, y, 308, 144, 28, 28) || hit(x, y, 338, 98, 104, 124) || hit(x, y, 158, 146, 164, 76)) cursor = 'pointer';
+      } else if (scene === 5) {
+        if (x < 25 && y > 120 && y < 180) cursor = 'pointer';
+        if (hit(x, y, 173, 113, 134, 94)) cursor = 'pointer';
+      }
+      C.style.cursor = cursor;
+    });
+
+
+
+    let finalShown = false;
+    // ── FINAL SCREEN ──────────────────────────────────────────
+    function showFinal() {
+      if (finalShown) return;
+      finalShown = true;
+      const fs = document.getElementById('final-screen');
+      fs.style.display = 'flex';
+      const letter = document.getElementById('letter');
+      letter.textContent = '';
+      const text = `Asel. \nYou are the light of my story like these candles.\n\nYou escaped from the dark —\nLike u always do.\nYou are the cutiest and interesting.\n\nThank you for playing my game.\nLove you ✦`;
+      let i = 0;
+      function type() {
+        if (i >= text.length) {
+          document.getElementById('replay').style.display = 'inline-block';
+          return;
+        }
+        const ch = text[i++];
+        if (ch === '\n') letter.innerHTML += `<br>`;
+        else letter.innerHTML += ch === '<' ? '&lt;' : ch === '>' ? '&gt;' : ch === '&' ? '&amp;' : ch;
+        setTimeout(type, ch === '.' || ch === '✦' ? 400 : ch === ',' ? 180 : ch === '\n' ? 350 : 40 + Math.random() * 30);
+      }
+      setTimeout(type, 800);
+    }
+
+    // ── START ─────────────────────────────────────────────────
+    function startGame() {
+      document.getElementById('title-screen').style.opacity = '0';
+      document.getElementById('title-screen').style.transition = 'opacity 1s';
+      setTimeout(() => {
+        document.getElementById('title-screen').style.display = 'none';
+        scene = 1;
+        draw();
+        msg('You wake up in a dark cabin. You do not remember how you got here.', 4000);
+      }, 1000);
+    }
+
+    // Ambient redraw for fire flicker
+    setInterval(() => { if (scene === 1 && state.r1.fireLit) draw(); }, 150);
+
+    // ══════════════════════════════════════════════════════════
+    // SOUND DESIGN — Web Audio API
+    // ══════════════════════════════════════════════════════════
+    let audioCtx = null;
+    let ambientNodes = [];
+    let fireNodes = [];
+    let musicBoxInterval = null;
+
+    function getAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    // Master volume
+    function masterGain(val = 0.7) {
+      const ac = getAudio();
+      if (!masterGain._node) {
+        masterGain._node = ac.createGain();
+        masterGain._node.gain.value = val;
+        masterGain._node.connect(ac.destination);
+      }
+      return masterGain._node;
+    }
+
+    function playTone(freq, type, dur, vol = 0.15, detune = 0, attack = 0.01, release = 0.3) {
+      const ac = getAudio();
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      osc.detune.value = detune;
+      gain.gain.setValueAtTime(0, ac.currentTime);
+      gain.gain.linearRampToValueAtTime(vol, ac.currentTime + attack);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur - 0.01);
+      osc.connect(gain);
+      gain.connect(masterGain());
+      osc.start(ac.currentTime);
+      osc.stop(ac.currentTime + dur);
+    }
+
+    function playNoise(dur, vol = 0.08, lowpass = 800, attack = 0.01) {
+      const ac = getAudio();
+      const bufSize = ac.sampleRate * dur;
+      const buffer = ac.createBuffer(1, bufSize, ac.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+      const src = ac.createBufferSource();
+      src.buffer = buffer;
+      const filt = ac.createBiquadFilter();
+      filt.type = 'lowpass';
+      filt.frequency.value = lowpass;
+      const gain = ac.createGain();
+      gain.gain.setValueAtTime(0, ac.currentTime);
+      gain.gain.linearRampToValueAtTime(vol, ac.currentTime + attack);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur - 0.05);
+      src.connect(filt);
+      filt.connect(gain);
+      gain.connect(masterGain());
+      src.start();
+      return src;
+    }
+
+    // ── Ambient drone ──
+    function startAmbient() {
+      if (ambientNodes.length > 0) return;
+      const ac = getAudio();
+      const freqs = [55, 82.4, 110, 130.8];
+      freqs.forEach((f, i) => {
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        const lfo = ac.createOscillator();
+        const lfoGain = ac.createGain();
+        osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+        osc.frequency.value = f;
+        osc.detune.value = (Math.random() - 0.5) * 8;
+        lfo.frequency.value = 0.05 + i * 0.03;
+        lfoGain.gain.value = 3;
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.detune);
+        gain.gain.value = 0.018;
+        osc.connect(gain);
+        gain.connect(masterGain());
+        lfo.start();
+        osc.start();
+        ambientNodes.push(osc, lfo);
+      });
+    }
+
+    function stopAmbient() {
+      ambientNodes.forEach(n => { try { n.stop(); } catch (e) { } });
+      ambientNodes = [];
+    }
+
+    // ── Fire crackle ──
+    function startFire() {
+      if (fireNodes.length > 0) return;
+      const ac = getAudio();
+      // Brown-ish noise crackle loop
+      function crackleLoop() {
+        if (fireNodes._dead) return;
+        const dur = 0.3 + Math.random() * 0.5;
+        const src = playNoise(dur, 0.04 + Math.random() * 0.04, 300 + Math.random() * 400, 0.02);
+        fireNodes.push(src);
+        setTimeout(crackleLoop, (dur * 700) | 0);
+      }
+      fireNodes._dead = false;
+      crackleLoop();
+      // low rumble
+      const osc = ac.createOscillator();
+      const g = ac.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.value = 60;
+      g.gain.value = 0.012;
+      const filt = ac.createBiquadFilter();
+      filt.type = 'lowpass';
+      filt.frequency.value = 120;
+      osc.connect(filt); filt.connect(g); g.connect(masterGain());
+      osc.start();
+      fireNodes.push(osc);
+    }
+
+    function stopFire() {
+      if (fireNodes._dead !== undefined) fireNodes._dead = true;
+      fireNodes.forEach(n => { try { n.stop(); } catch (e) { } });
+      fireNodes = [];
+    }
+
+    // ── Click / interact ──
+    function sndClick() {
+      playNoise(0.06, 0.12, 2000, 0.005);
+      playTone(900, 'sine', 0.05, 0.06, 0, 0.002, 0.04);
+    }
+
+    // ── Candle light ──
+    function sndCandleLight() {
+      // Quick scratch + warm tone
+      playNoise(0.18, 0.18, 4000, 0.01);
+      playTone(220, 'sine', 0.6, 0.06, 0, 0.05, 0.5);
+      playTone(440, 'triangle', 0.4, 0.03, 12, 0.02, 0.35);
+    }
+
+    // ── Fire ignite ──
+    function sndFireIgnite() {
+      playNoise(0.8, 0.25, 600, 0.05);
+      playNoise(0.5, 0.15, 1200, 0.1);
+      setTimeout(() => startFire(), 400);
+    }
+
+    // ── Door creak ──
+    function sndDoorCreak(wrong = false) {
+      const ac = getAudio();
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(wrong ? 180 : 120, ac.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(wrong ? 60 : 200, ac.currentTime + 0.6);
+      gain.gain.setValueAtTime(0.08, ac.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.65);
+      const filt = ac.createBiquadFilter();
+      filt.type = 'bandpass';
+      filt.frequency.value = wrong ? 300 : 500;
+      filt.Q.value = 8;
+      osc.connect(filt); filt.connect(gain); gain.connect(masterGain());
+      osc.start(); osc.stop(ac.currentTime + 0.7);
+      if (wrong) {
+        setTimeout(() => { playNoise(0.3, 0.1, 200); }, 200);
+      }
+    }
+
+    // ── Drawer / shelf open ──
+    function sndDrawerOpen() {
+      playNoise(0.12, 0.18, 3000, 0.008);
+      playTone(140, 'sawtooth', 0.2, 0.05, 0, 0.01, 0.18);
+      setTimeout(() => playNoise(0.08, 0.12, 2000, 0.002), 120);
+    }
+
+    // ── Drawer unlock click ──
+    function sndUnlock() {
+      playTone(1200, 'square', 0.04, 0.08, 0, 0.002, 0.03);
+      setTimeout(() => playTone(800, 'square', 0.06, 0.06, 0, 0.002, 0.05), 60);
+      setTimeout(() => playNoise(0.1, 0.06, 3000, 0.002), 80);
+    }
+
+    // ── Pickup item ──
+    function sndPickup() {
+      playTone(660, 'sine', 0.15, 0.07, 0, 0.01, 0.12);
+      playTone(880, 'sine', 0.12, 0.04, 5, 0.02, 0.09);
+    }
+
+    // ── Locket open ──
+    function sndLocketOpen() {
+      playTone(523, 'sine', 0.5, 0.08, 0, 0.02, 0.45);
+      setTimeout(() => playTone(659, 'sine', 0.5, 0.06, 7, 0.02, 0.45), 100);
+      setTimeout(() => playTone(784, 'sine', 0.7, 0.05, 0, 0.02, 0.6), 220);
+      playNoise(0.25, 0.04, 5000, 0.01);
+    }
+
+    // ── Music box wind ──
+    const MB_SCALE = [523.25, 587.33, 659.25, 698.46, 783.99, 880, 987.77];
+    function sndMusicBoxTurn(turnCount) {
+      const note = MB_SCALE[(turnCount - 1) % MB_SCALE.length];
+      playTone(note, 'triangle', 0.6, 0.09, 0, 0.005, 0.55);
+      playTone(note * 2, 'sine', 0.3, 0.03, 0, 0.005, 0.28);
+      playNoise(0.04, 0.05, 5000, 0.002);
+    }
+
+    // ── Music box success melody ──
+    function sndMusicBoxSuccess() {
+      const melody = [
+        [523.25, 0], [659.25, 150], [783.99, 300], [1046.5, 450],
+        [880, 650], [783.99, 800], [1046.5, 1000]
+      ];
+      melody.forEach(([f, t]) => {
+        setTimeout(() => {
+          playTone(f, 'triangle', 0.7, 0.1, 0, 0.005, 0.65);
+          playTone(f * 1.5, 'sine', 0.4, 0.03, 0, 0.005, 0.35);
+        }, t);
+      });
+    }
+
+    // ── Key use / box open ──
+    function sndKeyUse() {
+      playNoise(0.1, 0.15, 4000, 0.005);
+      playTone(440, 'sawtooth', 0.15, 0.06, 0, 0.01, 0.13);
+      setTimeout(() => {
+        playTone(523, 'sine', 0.8, 0.08, 0, 0.05, 0.7);
+        playTone(659, 'sine', 0.8, 0.05, 0, 0.08, 0.65);
+        playTone(784, 'sine', 0.8, 0.04, 0, 0.12, 0.6);
+      }, 200);
+    }
+
+    // ── Ambience per room ──
+    let prevScene = 0;
+    function updateAmbience(newScene) {
+      if (newScene === prevScene) return;
+      const oldScene = prevScene;
+      prevScene = newScene;
+      if (newScene === 1) {
+        startAmbient();
+        if (state.r1.fireLit) startFire();
+      } else {
+        startAmbient();
+      }
+      // Door transition whoosh (skip the very first scene entry from title)
+      if (oldScene > 0) {
+        playNoise(0.4, 0.08, 600, 0.02);
+        playTone(80, 'sine', 0.4, 0.04, 0, 0.02, 0.35);
+      }
+    }
+
+    // ── Sound-aware wrappers (called by click handler) ──
+    function sndRoom1(x, y) {
+      const prevFireLit = state.r1.fireLit;
+      const prevDrawerUnlocked = state.r1.drawerUnlocked;
+      const prevDrawerOpen = state.r1.drawerOpen;
+      const prevBookChecked = state.r1.bookChecked;
+      const prevCandle = hasItem('candle');
+      clickRoom1(x, y);
+      sndClick();
+      if (!prevBookChecked && state.r1.bookChecked) { setTimeout(sndPickup, 100); }
+      if (!prevFireLit && state.r1.fireLit) { sndFireIgnite(); }
+      if (!prevDrawerUnlocked && state.r1.drawerUnlocked) { sndUnlock(); }
+      if (!prevDrawerOpen && state.r1.drawerOpen) { sndDrawerOpen(); }
+      if (!prevCandle && hasItem('candle')) { sndPickup(); }
+    }
+
+    function sndRoom2(x, y) {
+      const prevCandle = state.r2.candleLit;
+      const prevCorrect = state.r2.correctDoor;
+      const prevTried = [...state.r2.doorsTried];
+      clickRoom2(x, y);
+      sndClick();
+      if (!prevCandle && state.r2.candleLit) { sndCandleLight(); }
+      if (!prevCorrect && state.r2.correctDoor) { sndDoorCreak(false); }
+      else if (state.r2.doorsTried.length > prevTried.length) { sndDoorCreak(true); }
+    }
+
+    function sndRoom3(x, y) {
+      const prevCracker = state.r3.crackerGiven;
+      const prevLocket = hasItem('locket');
+      const prevLocketOpen = state.r3.locketOpened;
+      clickRoom3(x, y);
+      sndClick();
+      if (!prevCracker && state.r3.crackerGiven) { sndPickup(); }
+      if (!prevLocket && hasItem('locket')) { setTimeout(sndPickup, 80); }
+      if (!prevLocketOpen && state.r3.locketOpened) { sndLocketOpen(); }
+    }
+
+    function sndRoom4(x, y) {
+      const prevTurns = state.r4.musicBoxTurns;
+      const prevGlass = state.r4.glassOpened;
+      const prevKey = state.r4.keyTaken;
+      clickRoom4(x, y);
+      sndClick();
+      if (state.r4.musicBoxTurns > prevTurns) {
+        sndMusicBoxTurn(state.r4.musicBoxTurns);
+        if (state.r4.glassOpened && !prevGlass) { setTimeout(sndMusicBoxSuccess, 200); }
+      }
+      if (!prevKey && state.r4.keyTaken) { sndPickup(); }
+    }
+
+    function sndRoom5(x, y) {
+      const prevKey = state.r5.keyUsed;
+      clickRoom5(x, y);
+      sndClick();
+      if (!prevKey && state.r5.keyUsed) { sndKeyUse(); }
+    }
+
+    // Start ambient on first interaction (after AudioContext unlock)
+    document.getElementById('title-screen').addEventListener('click', () => {
+      startAmbient();
+    }, { once: true });
+  </script>
+</body>
+
+</html>
